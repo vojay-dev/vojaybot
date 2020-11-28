@@ -1,0 +1,19 @@
+[twitch]
+bot_username="your_bot_user"
+channel_name="your_twitch_channel"
+oauth_token="xxx"
+
+[streamelements]
+jwt_token="xxx"
+channel_id="your_stream_elements_channel_id"
+
+[hue]
+bridge_ip="1.2.3.4"
+
+[hue.lights.links]
+aliases = [ "left" ]
+hue_light_id = "Office 2"
+
+[hue.lights.rechts]
+aliases = [ "right" ]
+hue_light_id = "Office 1"
