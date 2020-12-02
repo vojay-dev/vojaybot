@@ -1,10 +1,11 @@
 import random
-from typing import List, Optional
+from typing import List
 
-from vojaybot.twitch import CommandHandler, CommandResult
+from vojaybot.twitch import CommandHandler
 
 
 class DiceHandler(CommandHandler):
 
-    def handle(self, user: str, command: str, args: List[str]) -> CommandResult:
-        return CommandResult(True, f'@{user}: {random.randint(1, 6)}')
+    def handle(self, user: str, command: str, args: List[str]) -> bool:
+        self.send_chat_message(f'@{user}: {random.randint(1, 6)}')
+        return True

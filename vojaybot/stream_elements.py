@@ -1,11 +1,11 @@
 import json
 import logging
 from abc import abstractmethod
-from typing import List, Optional, Callable
+from typing import List
 
 import requests
 
-from vojaybot.twitch import CommandHandler, CommandResult
+from vojaybot.twitch import CommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,7 @@ class StreamElementsPointsCommandHandler(CommandHandler):
     """
 
     def __init__(self, costs: int, handler: CommandHandler, se_client: StreamElementsClient):
+        super().__init__()
         self._costs = costs
         self._handler = handler
         self._se_client = se_client
@@ -75,19 +76,23 @@ class StreamElementsPointsCommandHandler(CommandHandler):
     def _transaction_succeed(self, user: str, points_new: int):
         pass
 
-    def handle(self, user: str, command: str, args: List[str]) -> CommandResult:
+    @CommandHandler.message_processor.setter
+    def message_processor(self, processor):
+        self._handler.message_processor = processor
+        self._message_processor = processor
+
+    def handle(self, user: str, command: str, args: List[str]) -> bool:
         points = self._se_client.get_points(user)
         if points < self._costs:
-            return CommandResult(False, self._transaction_failed(user, points))
+            self.send_chat_message(self._transaction_failed(user, points))
+            return False
 
-        result = self._handler.handle(user, command, args)
+        success = self._handler.handle(user, command, args)
 
-        if not result.success:
-            return result
+        if not success:
+            return False
 
         points_new = self._se_client.reduce_points(user, self._costs)
 
-        messages = [self._transaction_succeed(user, points_new)]
-        messages.extend(result.messages)
-
-        return CommandResult(True, *messages)
+        self.send_chat_message(self._transaction_succeed(user, points_new))
+        return True

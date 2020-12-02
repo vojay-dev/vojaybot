@@ -2,31 +2,30 @@ import logging
 import socket
 import ssl
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict
+from typing import List, Dict, Callable
 
 logger = logging.getLogger(__name__)
 
 
-class CommandResult:
-
-    def __init__(self, success: bool, *messages: Optional[str]):
-        self._success = success
-        self._messages = messages
-
-    @property
-    def success(self):
-        return self._success
-
-    @property
-    def messages(self):
-        return self._messages
-
-
 class CommandHandler(ABC):
 
+    def __init__(self):
+        self._message_processor: Callable[[str], None] = lambda message: None
+
     @abstractmethod
-    def handle(self, user: str, command: str, args: List[str]) -> CommandResult:
+    def handle(self, user: str, command: str, args: List[str]) -> bool:
         pass
+
+    def send_chat_message(self, message: str) -> None:
+        self.message_processor(message)
+
+    @property
+    def message_processor(self) -> Callable[[str], None]:
+        return self._message_processor
+
+    @message_processor.setter
+    def message_processor(self, processor: Callable[[str], None]):
+        self._message_processor = processor
 
 
 class TwitchBot:
@@ -72,13 +71,9 @@ class TwitchBot:
                 logger.info(f'{user} sent command {command} with args {args}')
 
                 handler = self._handlers[command]
-                result = handler.handle(user, command, args)
+                success = handler.handle(user, command, args)
 
-                for result_message in result.messages:
-
-                    # Ensure that the result message actually contains some data
-                    if result_message:
-                        self._send_chat_message(result_message)
+                logger.info(f'command {command} {"succeeded" if success else "failed"}')
             else:
                 logger.info(f'no handler for command {command}')
 
@@ -105,6 +100,7 @@ class TwitchBot:
         self._irc = context.wrap_socket(sock)
 
     def register_handler(self, command: str, handler: CommandHandler, *aliases: str):
+        handler.message_processor = self._send_chat_message
         self._handlers[command] = handler
 
         for alias in aliases:

@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from phue import Bridge
 
-from vojaybot.twitch import CommandHandler, CommandResult
+from vojaybot.twitch import CommandHandler
 
 
 class HueLightHandler(CommandHandler):
@@ -25,6 +25,7 @@ class HueLightHandler(CommandHandler):
     COLOR_COMMAND_ALIASES = ['colors', 'farben']
 
     def __init__(self, bridge_ip, lights, usage):
+        super().__init__()
         self._bridge = Bridge(bridge_ip)
 
         self._lights = lights
@@ -79,32 +80,39 @@ class HueLightHandler(CommandHandler):
         """
         return name in HueLightHandler.STATE_ON_NAMES
 
-    def handle(self, user: str, command: str, args: List[str]) -> CommandResult:
+    def handle(self, user: str, command: str, args: List[str]) -> bool:
         if len(args) < 1:
-            return CommandResult(False, self._usage)
+            self.send_chat_message(self._usage)
+            return False
 
         if args[0] in HueLightHandler.COLOR_COMMAND_ALIASES:
-            return CommandResult(False, f'''@{user}, {', '.join(self.COLORS.keys())}''')
+            self.send_chat_message(f'''@{user}, {', '.join(self.COLORS.keys())}''')
+            return False
 
         # If first argument is a state (e.g. on, off), switch all lights on or off
         if self._is_valid_state(args[0]):
             state = self._get_state(args[0])
-            return CommandResult(True, self._handle_switch(state, self._get_hue_light_ids()))
+            self._handle_switch(state, self._get_hue_light_ids())
+            return True
 
         # If first argument is a color (e.g. red), colorize all lights
         if color := self._get_color(args[0]):
-            return CommandResult(True, self._handle_color(color, self._get_hue_light_ids()))
+            self._handle_color(color, self._get_hue_light_ids())
+            return True
 
         # If first argument is a Hue light name, only change that specific light
         if hue_light_id := self._get_hue_light_id(args[0]):
             # If second argument is a state (e.g. on, off) switch that specific light on or off
             if self._is_valid_state(args[1]):
                 state = self._get_state(args[1])
-                return CommandResult(True, self._handle_switch(state, [hue_light_id]))
+                self._handle_switch(state, [hue_light_id])
+                return True
 
             # If second argument is a color (e.g. red) colorize that specific light
             if color := self._get_color(args[1]):
-                return CommandResult(True, self._handle_color(color, [hue_light_id]))
+                self._handle_color(color, [hue_light_id])
+                return True
 
         # Invalid arguments
-        return CommandResult(False, self._usage)
+        self.send_chat_message(self._usage)
+        return False
