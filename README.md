@@ -15,7 +15,7 @@ Twitch Channel to get regular updates: [twitch.tv/vojay](https://twitch.tv/vojay
 
 In case you would like to have a Windows executable, the project comes with a `pyinstaller` dependency. Just run:
 ```
-pyinstaller -F -i "assets/icon.ico" -n "vojay bot" --add-data "config/config.toml;config/config.toml" main.py
+pyinstaller -i "assets/icon.ico" -n "vojay bot" --add-data "config/config.toml;config/." main.py
 ```
 
 Which generates a `/dist/vojay bot` folder containing all dependencies and an executable `.exe` file.
