@@ -1,13 +1,25 @@
 import logging
 
 import toml
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.markdown import Markdown
 
 from vojaybot.handler.dice import DiceHandler
 from vojaybot.handler.hue_light import HueLightHandler
 from vojaybot.stream_elements import StreamElementsClient, StreamElementsPointsCommandHandler
 from vojaybot.twitch import TwitchBot
 
-logging.basicConfig(format='%(asctime)s | %(name)s | %(levelname)s | %(message)s', level=logging.INFO)
+console = Console(color_system="windows")
+
+console.print(Markdown('# Vojay Bot'))
+
+logging.basicConfig(
+    format='%(message)s',
+    datefmt='[%X]',
+    level=logging.INFO,
+    handlers=[RichHandler(console=console)]
+)
 
 
 class VCoinsHandler(StreamElementsPointsCommandHandler):
