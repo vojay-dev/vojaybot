@@ -1,0 +1,7 @@
+[commands.hi]
+aliases = [ "hello" ]
+response = "Hi {user}"
+
+[commands.bye]
+aliases = [ "bb", "cya" ]
+response = "Bye {user}"

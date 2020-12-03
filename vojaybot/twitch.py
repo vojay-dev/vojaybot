@@ -2,10 +2,30 @@ import logging
 import socket
 import ssl
 import threading
+import time
 from abc import ABC, abstractmethod
 from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
-from typing import List, Dict, Callable
+from typing import List, Dict
+
+from rich import box
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.markdown import Markdown
+from rich.progress import Progress, BarColumn
+from rich.table import Table
+
+console = Console(color_system='windows', record=True)
+console.print(Markdown('# Vojay Bot'))
+
+# https://youtrack.jetbrains.com/issue/PY-39762
+# noinspection PyArgumentList
+logging.basicConfig(
+    format='%(message)s',
+    datefmt='[%X]',
+    level=logging.INFO,
+    handlers=[RichHandler(console=console)]
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +40,37 @@ class CommandHandler(ABC):
         pass
 
     @staticmethod
-    def send_chat_message(message: str) -> None:
+    def _send_chat_message(message: str) -> None:
         twitch_send_message_queue.put(message)
+
+
+class CommandHandlerDecorator(CommandHandler, ABC):
+
+    @abstractmethod
+    def _pre_handle(self, user: str, command: str, args: List[str]) -> bool:
+        pass
+
+    @abstractmethod
+    def _post_handle(self, user: str, command: str, args: List[str]) -> bool:
+        pass
+
+    def __init__(self, handler: CommandHandler):
+        self._command_handler = handler
+
+    def handle(self, user: str, command: str, args: List[str]) -> bool:
+        pre_success = self._pre_handle(user, command, args)
+
+        if not pre_success:
+            return False
+
+        handler_success = self._command_handler.handle(user, command, args)
+
+        if not handler_success:
+            return False
+
+        post_success = self._post_handle(user, command, args)
+
+        return pre_success and handler_success and post_success
 
 
 class TwitchBot:
@@ -127,12 +176,50 @@ class TwitchBot:
             message = twitch_send_message_queue.get()
             self._send_chat_message(message)
 
-    def run(self):
-        self._irc.connect(('irc.chat.twitch.tv', 6697))
+    def _connect(self):
+        with Progress(
+                'Connecting to Twitch IRC',
+                '|',
+                BarColumn(bar_width=None),
+                '|',
+                auto_refresh=True,
+                console=console
+        ) as progress:
+            connection_task = progress.add_task('', total=4)
+            self._irc.connect(('irc.chat.twitch.tv', 6697))
+            time.sleep(0.1)
+            progress.update(connection_task, advance=1)
 
-        self._send(f'PASS {self._oauth_token}')
-        self._send(f'NICK {self._bot_username}')
-        self._send(f'JOIN #{self._channel_name}')
+            self._send(f'PASS {self._oauth_token}')
+            time.sleep(0.1)
+            progress.update(connection_task, advance=1)
+
+            self._send(f'NICK {self._bot_username}')
+            time.sleep(0.1)
+            progress.update(connection_task, advance=1)
+
+            self._send(f'JOIN #{self._channel_name}')
+            time.sleep(0.1)
+            progress.update(connection_task, advance=1)
+
+    def run(self):
+        console.print(Markdown('Starting bot with the following `handlers` registered...'))
+        console.print(Markdown('## Registered Handler'))
+
+        table = Table(show_header=True, header_style='bold magenta', expand=True, box=box.SIMPLE_HEAVY)
+
+        table.add_column('command', style='cyan')
+        table.add_column('handler')
+
+        for command, handler in self._handlers.items():
+            table.add_row(command, type(handler).__name__)
+
+        console.print(table)
+
+        self._connect()
+
+        console.print(Markdown('Twitch connection successful and bot started! `Have fun`!'))
+        console.print(Markdown('## Log'))
 
         read_thread = threading.Thread(target=self._read)
         write_thread = threading.Thread(target=self._write)

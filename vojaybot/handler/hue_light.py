@@ -81,11 +81,11 @@ class HueLightHandler(CommandHandler):
 
     def handle(self, user: str, command: str, args: List[str]) -> bool:
         if len(args) < 1:
-            self.send_chat_message(self._usage)
+            self._send_chat_message(self._usage)
             return False
 
         if args[0] in HueLightHandler.COLOR_COMMAND_ALIASES:
-            self.send_chat_message(f'''@{user}, {', '.join(self.COLORS.keys())}''')
+            self._send_chat_message(f'''@{user}, {', '.join(self.COLORS.keys())}''')
             return False
 
         # If first argument is a state (e.g. on, off), switch all lights on or off
@@ -113,5 +113,5 @@ class HueLightHandler(CommandHandler):
                 return True
 
         # Invalid arguments
-        self.send_chat_message(self._usage)
+        self._send_chat_message(self._usage)
         return False

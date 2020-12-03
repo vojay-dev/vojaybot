@@ -1,11 +1,10 @@
 import json
 import logging
-from abc import abstractmethod
 from typing import List
 
 import requests
 
-from vojaybot.twitch import CommandHandler
+from vojaybot.twitch import CommandHandler, CommandHandlerDecorator
 
 logger = logging.getLogger(__name__)
 
@@ -49,44 +48,58 @@ class StreamElementsClient:
         return int(json.loads(response.text)['newAmount'])
 
 
-class StreamElementsPointsCommandHandler(CommandHandler):
+class StreamElementsPointsDecorator(CommandHandlerDecorator):
     """
-    This Handler can be used to combine any other Handlers with the StreamElements points system. It will only
-    call the other handler if the user has enough points. It also adds custom transaction success and failure
-    messages to the CommandResult so that they appear as additional chat messages.
+    This Decorator can be used to decorate any CommandHandler with the StreamElements points system. Before the
+    decorated handler is executed, the _pre_handle function checks if the viewer has enough points to execute
+    the command based on the configured costs.
 
-    To use this, you have derive from this Class and implement the failed and succeed methods. They should return
-    a customized text that fits to your channel.
+    If he has not enough points, he receives the transaction_failed_msg. If he has enough points, the decorated
+    handler is executed and as soon as this was successful (means: it returned True) the costs are removed from
+    his account and he receives the transaction_succeed_msg.
 
-    This is because you might have different names for your StreamElements points or want to use a different
-    language.
+    You can use the following placeholders in transaction_failed_msg and transaction_succeed_msg:
+
+    * user: Name of the viewer that wants to execute the command
+    * costs: Configured costs for the command
+    * points: Amount of StreamElements points before the transaction
+    * points_new: Amount of StreamElements points after the transaction
+
+    Example: Hi {user}, not enough points ({points} < {costs})
+
+    This allows to adjust the messages to your stream configuration (e.g. when the StreamElements points have a custom
+    name for you).
     """
 
-    def __init__(self, costs: int, handler: CommandHandler, se_client: StreamElementsClient):
+    def __init__(
+        self,
+        handler: CommandHandler,
+        costs: int,
+        se_client: StreamElementsClient,
+        transaction_succeed_msg: str = 'Hi {user}, not enough points ({points} < {costs})',
+        transaction_failed_msg: str = 'Hi {user}, for {command} you used {costs} points, {points_new} points left'
+    ):
+        super().__init__(handler)
+
         self._costs = costs
-        self._handler = handler
         self._se_client = se_client
 
-    @abstractmethod
-    def _transaction_failed(self, user: str, points: int):
-        pass
+        self._transaction_succeed_msg = transaction_succeed_msg
+        self._transaction_failed_msg = transaction_failed_msg
 
-    @abstractmethod
-    def _transaction_succeed(self, user: str, points_new: int):
-        pass
+    def _format_message(self, message, user, points, points_new):
+        return message.format(user=user, points=points, points_new=points_new, costs=self._costs)
 
-    def handle(self, user: str, command: str, args: List[str]) -> bool:
+    def _pre_handle(self, user: str, command: str, args: List[str]) -> bool:
         points = self._se_client.get_points(user)
+
         if points < self._costs:
-            self.send_chat_message(self._transaction_failed(user, points))
+            self._send_chat_message(self._format_message(self._transaction_failed_msg, user, points, points))
             return False
 
-        success = self._handler.handle(user, command, args)
-
-        if not success:
-            return False
-
+    def _post_handle(self, user: str, command: str, args: List[str]) -> bool:
+        points = self._se_client.get_points(user)
         points_new = self._se_client.reduce_points(user, self._costs)
 
-        self.send_chat_message(self._transaction_succeed(user, points_new))
+        self._send_chat_message(self._format_message(self._transaction_failed_msg, user, points, points_new))
         return True
