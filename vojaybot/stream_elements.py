@@ -63,7 +63,6 @@ class StreamElementsPointsCommandHandler(CommandHandler):
     """
 
     def __init__(self, costs: int, handler: CommandHandler, se_client: StreamElementsClient):
-        super().__init__()
         self._costs = costs
         self._handler = handler
         self._se_client = se_client
@@ -75,11 +74,6 @@ class StreamElementsPointsCommandHandler(CommandHandler):
     @abstractmethod
     def _transaction_succeed(self, user: str, points_new: int):
         pass
-
-    @CommandHandler.message_processor.setter
-    def message_processor(self, processor):
-        self._handler.message_processor = processor
-        self._message_processor = processor
 
     def handle(self, user: str, command: str, args: List[str]) -> bool:
         points = self._se_client.get_points(user)

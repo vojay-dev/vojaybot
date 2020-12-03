@@ -25,7 +25,6 @@ class HueLightHandler(CommandHandler):
     COLOR_COMMAND_ALIASES = ['colors', 'farben']
 
     def __init__(self, bridge_ip, lights, usage):
-        super().__init__()
         self._bridge = Bridge(bridge_ip)
 
         self._lights = lights
