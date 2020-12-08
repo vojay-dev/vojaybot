@@ -97,9 +97,11 @@ class StreamElementsPointsDecorator(CommandHandlerDecorator):
             self._send_chat_message(self._format_message(self._transaction_failed_msg, user, points, points))
             return False
 
+        return True
+
     def _post_handle(self, user: str, command: str, args: List[str]) -> bool:
         points = self._se_client.get_points(user)
         points_new = self._se_client.reduce_points(user, self._costs)
 
-        self._send_chat_message(self._format_message(self._transaction_failed_msg, user, points, points_new))
+        self._send_chat_message(self._format_message(self._transaction_succeed_msg, user, points, points_new))
         return True
