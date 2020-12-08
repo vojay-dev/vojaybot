@@ -5,15 +5,33 @@ import toml
 from vojaybot.twitch import CommandHandler
 
 
-def register_chat_handlers(config, bot):
-    commands_config = toml.load(config)
-    commands = commands_config['commands']
+def register_chat_handlers(handlers, bot):
+    """
+    Register a set of chat handlers that respond with a static message. Those messages can have a {user}
+    placeholder and aliases can be defined. The handlers parameter must be a dictionary with the following
+    format:
 
-    for command, meta in commands.items():
+    {
+        "hi": {"aliases": ["hello"], "response": "Hi {user}"},
+        "bye": {"aliases": ["cya"], "response": "Bye {user}"}
+    }
+
+    :param handlers: Dictionary with handler definitions
+    :param bot: An instance of vojaybot.twitch.TwitchBot
+    :return: None
+    """
+    for command, meta in handlers.items():
         response = meta['response']
         aliases = meta['aliases']
 
         bot.register_handler(command, ChatHandler(response), *aliases)
+
+
+def register_chat_handlers_from_toml_config(config, bot):
+    commands_config = toml.load(config)
+    commands = commands_config['commands']
+
+    register_chat_handlers(commands, bot)
 
 
 class ChatHandler(CommandHandler):

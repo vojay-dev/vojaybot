@@ -1,6 +1,6 @@
 import toml
 
-from vojaybot.handler.chat import register_chat_handlers
+from vojaybot.handler.chat import register_chat_handlers_from_toml_config
 from vojaybot.handler.dice import DiceHandler
 from vojaybot.handler.hue_light import HueLightHandler
 from vojaybot.stream_elements import StreamElementsClient, StreamElementsPointsDecorator
@@ -49,8 +49,8 @@ if __name__ == '__main__':
 
     # This example shows how to use the StreamElementsPointsDecorator in combination with the HueLightHandler.
     # It is also possible to add custom messages to indicate that the transaction was successful or failed.
-    transaction_failed_msg = 'Hi @{user}, du brauchst mindestens {costs} vcoins, schaue fleißig weiter :)'
     transaction_succeed_msg = 'Hi @{user}, dir wurden {costs} vcoins abgezogen, du hast noch {points_new} vcoins :)'
+    transaction_failed_msg = 'Hi @{user}, du brauchst mindestens {costs} vcoins, schaue fleißig weiter :)'
 
     light_handler = StreamElementsPointsDecorator(
         hue_light_handler,
@@ -66,6 +66,6 @@ if __name__ == '__main__':
     # which should just respond with a fixed text message. You can easily configure them in a toml file and add all
     # commands at once like this. If you use {user} somewhere in the response text, it automatically gets replaced
     # with the user that sent the command.
-    register_chat_handlers('config/commands.toml', bot)
+    register_chat_handlers_from_toml_config('config/commands.toml', bot)
 
     bot.run()

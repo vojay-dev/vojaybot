@@ -76,8 +76,8 @@ class StreamElementsPointsDecorator(CommandHandlerDecorator):
         handler: CommandHandler,
         costs: int,
         se_client: StreamElementsClient,
-        transaction_succeed_msg: str = 'Hi {user}, not enough points ({points} < {costs})',
-        transaction_failed_msg: str = 'Hi {user}, for {command} you used {costs} points, {points_new} points left'
+        transaction_succeed_msg: str = 'Hi {user}, for {command} you used {costs} points, {points_new} points left',
+        transaction_failed_msg: str = 'Hi {user}, not enough points ({points} < {costs})'
     ):
         super().__init__(handler)
 
@@ -87,14 +87,14 @@ class StreamElementsPointsDecorator(CommandHandlerDecorator):
         self._transaction_succeed_msg = transaction_succeed_msg
         self._transaction_failed_msg = transaction_failed_msg
 
-    def _format_message(self, message, user, points, points_new):
-        return message.format(user=user, points=points, points_new=points_new, costs=self._costs)
+    def _format_message(self, message, user, command, points, points_new):
+        return message.format(user=user, command=command, points=points, points_new=points_new, costs=self._costs)
 
     def _pre_handle(self, user: str, command: str, args: List[str]) -> bool:
         points = self._se_client.get_points(user)
 
         if points < self._costs:
-            self._send_chat_message(self._format_message(self._transaction_failed_msg, user, points, points))
+            self._send_chat_message(self._format_message(self._transaction_failed_msg, user, command, points, points))
             return False
 
         return True
@@ -103,5 +103,5 @@ class StreamElementsPointsDecorator(CommandHandlerDecorator):
         points = self._se_client.get_points(user)
         points_new = self._se_client.reduce_points(user, self._costs)
 
-        self._send_chat_message(self._format_message(self._transaction_succeed_msg, user, points, points_new))
+        self._send_chat_message(self._format_message(self._transaction_succeed_msg, user, command, points, points_new))
         return True
