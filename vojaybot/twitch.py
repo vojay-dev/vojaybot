@@ -109,7 +109,8 @@ class TwitchBot:
         if chat_message.startswith('!'):
             message_components = chat_message.split()
 
-            command = message_components[0][1:]
+            # Commands are always converted to lower case strings to make it more easy for users to use them
+            command = message_components[0][1:].lower()
             args = message_components[1:]
 
             if command in self._handlers:
@@ -149,7 +150,9 @@ class TwitchBot:
 
     def register_handler(self, command: str, handler: CommandHandler, *aliases: str):
         handler.message_processor = self._send_chat_message
-        self._handlers[command] = handler
+
+        # Commands are registered as lower case strings to make it more easy for users to use them
+        self._handlers[command.lower()] = handler
 
         for alias in aliases:
             self._handlers[alias] = handler
