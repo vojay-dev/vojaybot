@@ -107,9 +107,9 @@ class TwitchBot:
         chat_message = parsed_message['message']
 
         if chat_message.startswith('!'):
-            message_components = chat_message.split()
+            # All user input is converted to lower case to simplify handling in command handlers
+            message_components = chat_message.lower().split()
 
-            # Commands are always converted to lower case strings to make it more easy for users to use them
             command = message_components[0][1:].lower()
             args = message_components[1:]
 
